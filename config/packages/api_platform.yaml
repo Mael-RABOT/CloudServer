@@ -1,0 +1,18 @@
+api_platform:
+    title: 'Your API'
+    version: '1.0.0'
+    description: 'API description'
+
+    # Auto-discover API resources
+    mapping:
+        paths: ['%kernel.project_dir%/src/Entity', '%kernel.project_dir%/src/ApiResource']
+
+    # Enable automatic OpenAPI documentation
+    swagger:
+        versions: [3]
+
+    # Optional: Configure formats
+    formats:
+        jsonld: ['application/ld+json']
+        json: ['application/json']
+        html: ['text/html']
