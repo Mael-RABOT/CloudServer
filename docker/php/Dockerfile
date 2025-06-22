@@ -57,7 +57,13 @@ if [ -d "/var/www/html" ]; then\n\
     chown -R symfony:symfony /var/www/html\n\
     chmod -R 755 /var/www/html\n\
 fi\n\
-exec gosu symfony "$@"' > /usr/local/bin/docker-entrypoint.sh && \
+# If the command is php-fpm, run it as root\n\
+if [ "$1" = "php-fpm" ]; then\n\
+    exec "$@"\n\
+else\n\
+    # For other commands, switch to symfony user\n\
+    exec gosu symfony "$@"\n\
+fi' > /usr/local/bin/docker-entrypoint.sh && \
     chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Install gosu for proper user switching
