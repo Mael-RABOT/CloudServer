@@ -11,6 +11,7 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-prod}
       - DATABASE_URL=mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@database:3306/${MYSQL_DATABASE}?serverVersion=${MYSQL_VERSION}
+      - CORS_ALLOW_ORIGIN=${CORS_ALLOW_ORIGIN}
     depends_on:
       database:
         condition: service_healthy
