@@ -56,6 +56,10 @@ RUN echo '#!/bin/bash\n\
 if [ -d "/var/www/html" ]; then\n\
     chown -R symfony:symfony /var/www/html\n\
     chmod -R 755 /var/www/html\n\
+    # Fix Git ownership issues\n\
+    if [ -d "/var/www/html/.git" ]; then\n\
+        gosu symfony git config --global --add safe.directory /var/www/html\n\
+    fi\n\
 fi\n\
 # If the command is php-fpm, run it as root\n\
 if [ "$1" = "php-fpm" ]; then\n\
