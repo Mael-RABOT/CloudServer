@@ -95,34 +95,10 @@ class AuthController extends AbstractController
         UserPasswordHasherInterface $passwordHasher,
         EntityManagerInterface $entityManager
     ): JsonResponse {
-        $data = json_decode($request->getContent(), true);
-
-        if (!$data || !isset($data['username']) || !isset($data['password'])) {
-            return $this->json([
-                'error' => 'Missing required fields: username, password'
-            ], Response::HTTP_BAD_REQUEST);
-        }
-
-        $user = $entityManager->getRepository(User::class)->findOneBy([
-            'username' => $data['username']
-        ]);
-
-        if (!$user || !$passwordHasher->isPasswordValid($user, $data['password'])) {
-            return $this->json([
-                'error' => 'Invalid credentials'
-            ], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $token = $jwtManager->create($user);
-
+        // This method should not be called directly when using json_login
+        // The security system will handle the authentication
         return $this->json([
-            'token' => $token,
-            'user' => [
-                'id' => $user->getId(),
-                'username' => $user->getUsername(),
-                'email' => $user->getEmail(),
-                'roles' => $user->getRoles()
-            ]
-        ]);
+            'error' => 'This endpoint should be accessed through the security system'
+        ], Response::HTTP_METHOD_NOT_ALLOWED);
     }
 }

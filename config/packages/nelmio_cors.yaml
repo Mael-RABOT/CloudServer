@@ -4,6 +4,7 @@ nelmio_cors:
         allow_origin:
             - '^https?://(localhost|127\.0\.0\.1|cloud\.maelrabot\.com)(:\d+)?$'
             - '^https://cloud\.maelrabot\.com$'
+            - '^https://cloud\.api\.maelrabot\.com$'
             - '^https?://89\.168\.62\.189(:\d+)?$'
         allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE']
         allow_headers: ['Content-Type', 'Authorization']
@@ -15,6 +16,7 @@ nelmio_cors:
             allow_origin:
                 - '^https?://(localhost|127\.0\.0\.1|cloud\.maelrabot\.com)(:\d+)?$'
                 - '^https://cloud\.maelrabot\.com$'
+                - '^https://cloud\.api\.maelrabot\.com$'
                 - '^https?://89\.168\.62\.189(:\d+)?$'
             allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE']
             allow_headers: ['Content-Type', 'Authorization']
