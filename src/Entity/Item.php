@@ -9,17 +9,26 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
 use App\Repository\ItemRepository;
+use App\State\ItemDataProvider;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ItemRepository::class)]
 #[ApiResource(
     operations: [
-        new GetCollection(),
+        new GetCollection(
+            provider: ItemDataProvider::class
+        ),
         new Post(),
-        new Get(),
-        new Put(),
-        new Delete(),
+        new Get(
+            provider: ItemDataProvider::class
+        ),
+        new Put(
+            provider: ItemDataProvider::class
+        ),
+        new Delete(
+            provider: ItemDataProvider::class
+        ),
         new Post(
             uriTemplate: '/items/upload',
             controller: 'App\\Controller\\ItemController::upload',
