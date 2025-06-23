@@ -21,6 +21,13 @@ class AuthController extends AbstractController
         EntityManagerInterface $entityManager,
         ValidatorInterface $validator
     ): JsonResponse {
+        return $this->json([
+            'message' => 'Registration is disabled, please contact the administrator.',
+            'status' => 'error',
+            'code' => 403,
+            'timestamp' => (new \DateTime())->format('c'),
+        ]);
+
         $data = json_decode($request->getContent(), true);
 
         if (!$data || !isset($data['username']) || !isset($data['password']) || !isset($data['email'])) {

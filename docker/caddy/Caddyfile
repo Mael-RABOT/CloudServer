@@ -1,0 +1,52 @@
+{
+    # Global options
+    order php_server before file_server
+    auto_https off  # We'll handle HTTPS with reverse proxy
+}
+
+:8080 {
+    # Enable PHP processing
+    php_server
+
+    # Root directory
+    root * /app/public
+
+    # Security headers
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-XSS-Protection "1; mode=block"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "no-referrer-when-downgrade"
+        Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    }
+
+    # Handle static files with caching
+    @static {
+        file
+        path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.eot
+    }
+    header @static Cache-Control "public, max-age=31536000, immutable"
+
+    # Deny access to sensitive files
+    @sensitive {
+        path /\. /config /src /tests /var /vendor /composer.json /composer.lock /symfony.lock
+    }
+    respond @sensitive 403
+
+    # Health check endpoint
+    @health {
+        path /health
+    }
+    respond @health "healthy" 200
+
+    # API routes - let Symfony handle everything else
+    try_files {path} /index.php?{query}
+
+    # Logging
+    log {
+        output stdout
+        format console
+        level INFO
+    }
+}
