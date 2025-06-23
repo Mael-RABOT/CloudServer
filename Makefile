@@ -215,3 +215,7 @@ prod-reset: ## Reset the production containers
 .PHONY: prod-list-users
 prod-list-users: ## List all users in the production database
 	sudo docker compose -f docker-compose.prod.yml exec frankenphp php bin/console app:list-users
+
+.PHONY: prod-delete-user
+prod-delete-user: ## Delete a user in the production database
+	sudo docker compose -f docker-compose.prod.yml exec frankenphp php bin/console app:delete-user $(USERNAME)
