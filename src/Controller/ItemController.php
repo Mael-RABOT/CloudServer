@@ -177,4 +177,132 @@ class ItemController extends AbstractController
 
         return new JsonResponse($data);
     }
+
+    public function updateTextFile(Request $request, int $id): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if (!$user) {
+            return new JsonResponse(['error' => 'User not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        // Find the item by ID
+        $item = $this->itemRepository->find($id);
+
+        if (!$item) {
+            return new JsonResponse(['error' => 'Item not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($item->getUser()->getId() !== $user->getId()) {
+            return new JsonResponse(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        // Check if this is a text file
+        if (!str_starts_with($item->getContentType(), 'text/')) {
+            return new JsonResponse(['error' => 'Only text files can be updated'], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Get request content
+        $content = json_decode($request->getContent(), true);
+
+        if (!$content) {
+            return new JsonResponse(['error' => 'Invalid JSON payload'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $uploadDir = $this->getParameter('kernel.project_dir') . "/var/upload/{$user->getUsername()}";
+        $currentFilePath = $uploadDir . "/{$item->getFilename()}";
+
+        // Check if the current file exists
+        if (!file_exists($currentFilePath)) {
+            return new JsonResponse(['error' => 'File not found on disk'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Handle filename change first
+        if (isset($content['filename']) && $content['filename'] !== $item->getFilename()) {
+            $newFilePath = $uploadDir . "/{$content['filename']}";
+
+            // Rename the file
+            if (!rename($currentFilePath, $newFilePath)) {
+                return new JsonResponse(['error' => 'Failed to rename file'], Response::HTTP_INTERNAL_SERVER_ERROR);
+            }
+
+            // Update the file path for content update
+            $currentFilePath = $newFilePath;
+            $item->setFilename($content['filename']);
+        }
+
+        // Update content if provided
+        if (isset($content['content'])) {
+            // Ensure the file is writable
+            if (!is_writable($currentFilePath)) {
+                return new JsonResponse([
+                    'error' => 'File is not writable',
+                    'file_path' => $currentFilePath,
+                    'permissions' => substr(sprintf('%o', fileperms($currentFilePath)), -4)
+                ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            }
+
+            // Write new content to file
+            $bytesWritten = file_put_contents($currentFilePath, $content['content']);
+            if ($bytesWritten === false) {
+                return new JsonResponse([
+                    'error' => 'Failed to write content to file',
+                    'file_path' => $currentFilePath,
+                    'content_length' => strlen($content['content']),
+                    'file_exists' => file_exists($currentFilePath),
+                    'file_writable' => is_writable($currentFilePath)
+                ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            }
+        }
+
+        $this->entityManager->flush();
+
+        return new JsonResponse([
+            'id' => $item->getId(),
+            'location' => $item->getLocation(),
+            'filename' => $item->getFilename(),
+            'contentType' => $item->getContentType(),
+            'createdAt' => $item->getCreatedAt()->format('Y-m-d H:i:s'),
+            'content_updated' => isset($content['content']),
+            'filename_updated' => isset($content['filename'])
+        ]);
+    }
+
+    public function deleteItem(int $id): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if (!$user) {
+            return new JsonResponse(['error' => 'User not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        // Find the item by ID
+        $item = $this->itemRepository->find($id);
+
+        if (!$item) {
+            return new JsonResponse(['error' => 'Item not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($item->getUser()->getId() !== $user->getId()) {
+            return new JsonResponse(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        $uploadDir = $this->getParameter('kernel.project_dir') . "/var/upload/{$user->getUsername()}";
+        $filePath = $uploadDir . "/{$item->getFilename()}";
+
+        // Delete the file from filesystem if it exists
+        if (file_exists($filePath)) {
+            if (!unlink($filePath)) {
+                return new JsonResponse(['error' => 'Failed to delete file from filesystem'], Response::HTTP_INTERNAL_SERVER_ERROR);
+            }
+        }
+
+        // Delete the item from database
+        $this->entityManager->remove($item);
+        $this->entityManager->flush();
+
+        return new JsonResponse(['message' => 'Item deleted successfully'], Response::HTTP_NO_CONTENT);
+    }
 }

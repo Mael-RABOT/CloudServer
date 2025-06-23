@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
 use App\Repository\ItemRepository;
 use App\State\ItemDataProvider;
+use App\State\ItemDataProcessor;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -23,11 +24,9 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new Get(
             provider: ItemDataProvider::class
         ),
-        new Put(
-            provider: ItemDataProvider::class
-        ),
         new Delete(
-            provider: ItemDataProvider::class
+            uriTemplate: '/items/{id}',
+            controller: 'App\\Controller\\ItemController::deleteItem',
         ),
         new Post(
             uriTemplate: '/items/upload',
@@ -43,6 +42,12 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new GetCollection(
             uriTemplate: '/items/my',
             controller: 'App\\Controller\\ItemController::myItems',
+        ),
+        new Put(
+            uriTemplate: '/items/{id}/update',
+            controller: 'App\\Controller\\ItemController::updateTextFile',
+            deserialize: false,
+            validate: false,
         )
     ],
     normalizationContext: ['groups' => ['item:read']],
