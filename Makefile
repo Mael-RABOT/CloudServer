@@ -171,3 +171,43 @@ git-advance: ## Advance the branch to the last commit - only for a single commit
 	git fetch origin
 	git reset --hard $(ORIGIN_BRANCH)
 	git cherry-pick $(LAST_COMMIT_SHA)
+
+##@ Production
+
+.PHONY: prod-stop
+prod-stop: ## Stop the production containers
+	sudo docker compose -f docker-compose.prod.yml down
+
+.PHONY: prod-start
+prod-start: ## Start the production containers
+	sudo docker compose -f docker-compose.prod.yml up -d
+
+.PHONY: prod-build
+prod-build: ## Build the production containers
+	sudo docker compose -f docker-compose.prod.yml build
+
+.PHONY: prod-restart
+prod-restart: ## Restart the production containers
+	sudo docker compose -f docker-compose.prod.yml down
+	sudo docker compose -f docker-compose.prod.yml up -d
+
+.PHONY: prod-composer-install
+prod-composer-install: ## Install the production composer dependencies
+	sudo docker compose -f docker-compose.prod.yml exec frankenphp composer install
+
+.PHONY: prod-migrate
+prod-migrate: ## Run the production migrations
+	sudo docker compose -f docker-compose.prod.yml exec frankenphp php bin/console doctrine:migrations:migrate --no-interaction --env=prod
+
+.PHONY: prod-cache-clear
+prod-cache-clear: ## Clear the production cache
+	sudo docker compose -f docker-compose.prod.yml exec frankenphp php bin/console cache:clear --env=prod
+
+.PHONY: prod-reset
+prod-reset: ## Reset the production containers
+	make prod-stop
+	make prod-build
+	make prod-start
+	make prod-composer-install
+	make prod-migrate
+	make prod-cache-clear
