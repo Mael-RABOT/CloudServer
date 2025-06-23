@@ -54,7 +54,6 @@ Examples:
                     'username' => $user->getUsername(),
                     'email' => $user->getEmail(),
                     'roles' => $user->getRoles(),
-                    'created_at' => $user->getCreatedAt()?->format('c'),
                 ];
             }
             $io->write(json_encode($userData, JSON_PRETTY_PRINT));
@@ -66,12 +65,11 @@ Examples:
                     $user->getUsername(),
                     $user->getEmail(),
                     implode(', ', $user->getRoles()),
-                    $user->getCreatedAt()?->format('Y-m-d H:i:s') ?? 'N/A',
                 ];
             }
 
             $io->table(
-                ['ID', 'Username', 'Email', 'Roles', 'Created At'],
+                ['ID', 'Username', 'Email', 'Roles'],
                 $tableData
             );
         }

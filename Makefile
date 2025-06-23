@@ -211,3 +211,7 @@ prod-reset: ## Reset the production containers
 	make prod-composer-install
 	make prod-migrate
 	make prod-cache-clear
+
+.PHONY: prod-list-users
+prod-list-users: ## List all users in the production database
+	sudo docker compose -f docker-compose.prod.yml exec frankenphp php bin/console app:list-users
