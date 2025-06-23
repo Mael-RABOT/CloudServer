@@ -1,0 +1,80 @@
+FROM dunglas/frankenphp:1-alpine
+
+# Install system dependencies
+RUN apk add --no-cache \
+    git \
+    curl \
+    libpng-dev \
+    oniguruma-dev \
+    libxml2-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    icu-dev \
+    freetype-dev \
+    libjpeg-turbo-dev \
+    libwebp-dev \
+    libxpm-dev \
+    imagemagick-dev \
+    autoconf \
+    g++ \
+    make
+
+# Install PHP extensions
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp --with-xpm \
+    && docker-php-ext-install \
+    pdo_mysql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    intl \
+    zip \
+    opcache
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Set working directory
+WORKDIR /app
+
+# Copy custom PHP configuration
+COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
+
+# Create symfony user
+RUN addgroup -g 1000 symfony && \
+    adduser -D -s /bin/sh -u 1000 -G symfony symfony
+
+# Create necessary directories with proper ownership
+RUN mkdir -p /app/var/upload /app/vendor && \
+    chown -R symfony:symfony /app && \
+    chmod -R 775 /app/var/upload && \
+    chmod -R 775 /app/vendor
+
+# Copy application files
+COPY --chown=symfony:symfony . /app
+
+# Create symlink for environment file before composer install
+USER symfony
+RUN ln -sf .env.production .env
+
+# Set a placeholder DATABASE_URL for build (will be overridden at runtime)
+ENV DATABASE_URL="mysql://placeholder:placeholder@localhost:3306/placeholder?serverVersion=10.11&charset=utf8"
+
+# Fix git ownership issue and install dependencies (skip scripts to avoid cache clear)
+RUN git config --global --add safe.directory /app && \
+    composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+
+# Switch back to root for FrankenPHP
+USER root
+
+# Copy startup script and make it executable
+COPY docker/php/startup.sh /startup.sh
+RUN chmod +x /startup.sh
+
+# Expose port 80 for FrankenPHP
+EXPOSE 80
+
+# Start with the startup script
+CMD ["/startup.sh"]
