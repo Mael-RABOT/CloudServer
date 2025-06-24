@@ -18,7 +18,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ApiResource(
     operations: [
         new GetCollection(
-            provider: ItemDataProvider::class
+            provider: ItemDataProvider::class,
+            normalizationContext: ['groups' => ['item:read']]
         ),
         new Post(),
         new Get(
@@ -48,6 +49,10 @@ use Symfony\Component\Serializer\Annotation\Groups;
             controller: 'App\\Controller\\ItemController::updateTextFile',
             deserialize: false,
             validate: false,
+        ),
+        new Get(
+            uriTemplate: '/items/{id}/get_shared_url',
+            controller: 'App\\Controller\\ItemController::getSharedUrl',
         )
     ],
     normalizationContext: ['groups' => ['item:read']],
@@ -81,6 +86,10 @@ class Item
     #[ORM\Column]
     #[Groups(['item:read'])]
     private ?\DateTimeImmutable $createdAt = null;
+
+    #[ORM\Column]
+    #[Groups(['item:read', 'item:write'])]
+    private bool $isShared = false;
 
     public function __construct()
     {
@@ -148,6 +157,23 @@ class Item
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function getIsShared(): bool
+    {
+        return $this->isShared;
+    }
+
+    public function isShared(): bool
+    {
+        return $this->isShared;
+    }
+
+    public function setIsShared(bool $isShared): static
+    {
+        $this->isShared = $isShared;
 
         return $this;
     }

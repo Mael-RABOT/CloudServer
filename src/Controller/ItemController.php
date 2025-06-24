@@ -125,7 +125,8 @@ class ItemController extends AbstractController
             'location' => $item->getLocation(),
             'filename' => $item->getFilename(),
             'contentType' => $item->getContentType(),
-            'createdAt' => $item->getCreatedAt()->format('Y-m-d H:i:s')
+            'createdAt' => $item->getCreatedAt()->format('Y-m-d H:i:s'),
+            'isShared' => $item->isShared()
         ], Response::HTTP_CREATED);
     }
 
@@ -171,7 +172,8 @@ class ItemController extends AbstractController
                 'location' => $item->getLocation(),
                 'filename' => $item->getFilename(),
                 'contentType' => $item->getContentType(),
-                'createdAt' => $item->getCreatedAt()->format('Y-m-d H:i:s')
+                'createdAt' => $item->getCreatedAt()->format('Y-m-d H:i:s'),
+                'isShared' => $item->isShared()
             ];
         }, $items);
 
@@ -304,5 +306,82 @@ class ItemController extends AbstractController
         $this->entityManager->flush();
 
         return new JsonResponse(['message' => 'Item deleted successfully'], Response::HTTP_NO_CONTENT);
+    }
+
+    public function getSharedUrl(Item $item): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if (!$user || $item->getUser()->getId() !== $user->getId()) {
+            return new JsonResponse(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        if (!$item->isShared()) {
+            return new JsonResponse(['error' => 'Item is not shared'], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Generate the shared URL
+        $sharedUrl = $this->generateUrl('app_item_shared_download', ['id' => $item->getId()], \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL);
+
+        return new JsonResponse([
+            'shared_url' => $sharedUrl,
+            'item_id' => $item->getId(),
+            'filename' => $item->getFilename(),
+            'content_type' => $item->getContentType()
+        ]);
+    }
+
+    public function toggleShared(int $id): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if (!$user) {
+            return new JsonResponse(['error' => 'User not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        // Find the item by ID
+        $item = $this->itemRepository->find($id);
+
+        if (!$item) {
+            return new JsonResponse(['error' => 'Item not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($item->getUser()->getId() !== $user->getId()) {
+            return new JsonResponse(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        // Toggle the shared status
+        $item->setIsShared(!$item->isShared());
+        $this->entityManager->flush();
+
+        return new JsonResponse([
+            'id' => $item->getId(),
+            'is_shared' => $item->isShared(),
+            'message' => $item->isShared() ? 'Item is now shared' : 'Item is no longer shared'
+        ]);
+    }
+
+    public function sharedDownload(Item $item): Response
+    {
+        if (!$item->isShared()) {
+            return new JsonResponse(['error' => 'Item is not shared'], Response::HTTP_FORBIDDEN);
+        }
+
+        $filePath = $this->getParameter('kernel.project_dir') . "/var/upload/{$item->getUser()->getUsername()}/{$item->getFilename()}";
+
+        if (!file_exists($filePath)) {
+            return new JsonResponse(['error' => 'File not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $response = new BinaryFileResponse($filePath);
+        $response->setContentDisposition(
+            ResponseHeaderBag::DISPOSITION_INLINE,
+            $item->getFilename()
+        );
+        $response->headers->set('Content-Type', $item->getContentType());
+
+        return $response;
     }
 }
